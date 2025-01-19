@@ -29,3 +29,6 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+SYSCALL(getNumProc) ####our line
+SYSCALL(getMaxPid)  ####our line
+SYSCALL(getProcInfo) ####our line

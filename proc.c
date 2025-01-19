@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "processInfo.h" ///// our line
 
 struct {
   struct spinlock lock;
@@ -88,6 +89,9 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  p->nrswitch = 0;  ////// our line: Initialize nrswitch to 0 for the new process
+  p->nfd = 0;       ////// our line: Initialize nfd to 0 for the new process
 
   release(&ptable.lock);
 
@@ -210,6 +214,8 @@ fork(void)
 
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
+  np->nfd = curproc->nfd; //// our line: copy the nfd from the parent to the chaild.
+
   pid = np->pid;
 
   acquire(&ptable.lock);
@@ -217,6 +223,7 @@ fork(void)
   np->state = RUNNABLE;
 
   release(&ptable.lock);
+
 
   return pid;
 }
@@ -340,8 +347,11 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
+
       switchuvm(p);
       p->state = RUNNING;
+
+      p->nrswitch++; /////our line: increading nrswitch when processes chagnes
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -532,3 +542,61 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+/////////////////////our functions////////////////////
+
+// Returns the total number of active processes in the system.
+int
+getNumProc(void)
+{
+    int count = 0;
+    struct proc* p;
+    acquire(&ptable.lock); // Acquire the lock on the process table to ensure exclusive access
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+        if (p->state != UNUSED) // If the process state is anything but UNUSED
+            count++;
+
+    release(&ptable.lock); // Release the lock on the process table
+
+    return count;
+}
+
+// Returns the highest PID value among all active processes in the system.
+int
+getMaxPid(void)
+{
+    int maxPid = 0; 
+    struct proc* p; 
+
+    acquire(&ptable.lock); 
+
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if (p->state != UNUSED && p->pid > maxPid) {
+            maxPid = p->pid; // Update maxPid with the PID of the current process
+        }
+    }
+
+    release(&ptable.lock); 
+
+    return maxPid; 
+}
+
+// Fills in a processInfo structure with details of the process identified by pid.
+// Returns 0 on success or -1 if no process with the given pid exists.
+int getProcInfo(int pid, struct processInfo* info) {
+    acquire(&ptable.lock);
+    for (struct proc* p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if (p->pid == pid) {
+            info->state = p->state;
+            info->ppid = p->parent ? p->parent->pid : 0; // Parent PID, 0 if none (for init)
+            info->sz = p->sz;
+            info->nfd = p->nfd; 
+            info->nrswitch = p->nrswitch; 
+            release(&ptable.lock);
+            return 0; 
+        }
+    }
+    release(&ptable.lock);
+    return -1; 
+}
+

@@ -46,6 +46,7 @@ fdalloc(struct file *f)
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd] == 0){
       curproc->ofile[fd] = f;
+      myproc()->nfd++; ///// our line: when file is open/duplicated , increase the nfd.
       return fd;
     }
   }
@@ -100,6 +101,9 @@ sys_close(void)
     return -1;
   myproc()->ofile[fd] = 0;
   fileclose(f);
+
+  myproc()->nfd--; ///// our line: when file is close , decrease the nfd.
+
   return 0;
 }
 
@@ -329,6 +333,8 @@ sys_open(void)
   f->off = 0;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+
   return fd;
 }
 

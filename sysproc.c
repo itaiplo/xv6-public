@@ -6,6 +6,11 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "processInfo.h" ///// our line
+
+int getNumProc(void); ///// our line
+int getMaxPid(void); ///// our line
+int getProcInfo(int pid, struct processInfo* info); ///// our line
 
 int
 sys_fork(void)
@@ -89,3 +94,25 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+///////////// our functions//////////////
+int
+sys_getNumProc(void)
+{
+    return getNumProc();
+}
+
+int
+sys_getMaxPid(void)
+{
+    return getMaxPid();
+}
+
+int sys_getProcInfo(void) {
+    int pid;
+    struct processInfo* info;
+    if (argint(0, &pid) < 0 || argptr(1, (void*)&info, sizeof(*info)) < 0)
+        return -1; // Error in arguments
+    return getProcInfo(pid, info);
+}
+
