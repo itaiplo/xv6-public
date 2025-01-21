@@ -46,6 +46,7 @@ fdalloc(struct file *f)
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd] == 0){
       curproc->ofile[fd] = f;
+      myproc()->nfd++; //when the file is open or duplicated, increase nfd.
       return fd;
     }
   }
@@ -100,6 +101,7 @@ sys_close(void)
     return -1;
   myproc()->ofile[fd] = 0;
   fileclose(f);
+  myproc()->nfd--; //when file is close, decrese nfd
   return 0;
 }
 

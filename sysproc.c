@@ -6,6 +6,12 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "processInfo.h" 
+
+//my funcs
+int getNumProc(void); 
+int getMaxPid(void); 
+int getProcInfo(int pid, struct processInfo* info); 
 
 int
 sys_fork(void)
@@ -89,3 +95,32 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+///////////// our functions//////////////
+int
+sys_getNumProc(void)
+{
+    return getNumProc();
+}
+
+int
+sys_getMaxPid(void)
+{
+    return getMaxPid();
+}
+
+int sys_getProcInfo(void) {
+    int processId;                      // Variable to store the process ID argument
+    struct processInfo* procDetails;    // Pointer to the processInfo structure argument
+
+    // Retrieve and validate the system call arguments:
+    // - The first argument is the process ID.
+    // - The second argument is the pointer to a processInfo structure.
+    if (argint(0, &processId) < 0 || argptr(1, (void*)&procDetails, sizeof(*procDetails)) < 0)
+        return -1;  // Return -1 if there is an issue with the arguments
+
+    // Fetch and return the process information for the given process ID
+    return getProcInfo(processId, procDetails);
+}
+
+

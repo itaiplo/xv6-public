@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "processInfo.h" 
 
 struct {
   struct spinlock lock;
@@ -88,6 +89,9 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  p->nrswitch = 0;  // Init nrswitch to 0 for new process
+  p->nfd = 0;       // Init nfd to 0 for new process
 
   release(&ptable.lock);
 
@@ -209,6 +213,7 @@ fork(void)
   np->cwd = idup(curproc->cwd);
 
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+  np->nfd = curproc->nfd; // duplicate nfd from parent to child.
 
   pid = np->pid;
 
@@ -217,6 +222,7 @@ fork(void)
   np->state = RUNNABLE;
 
   release(&ptable.lock);
+
 
   return pid;
 }
@@ -340,8 +346,11 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
+
       switchuvm(p);
       p->state = RUNNING;
+
+      p->nrswitch++; //increase nrswitch by 1 for the process that is running
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -532,3 +541,66 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+// functions
+
+// return the actice proccess.
+int getNumProc(void)
+{
+    int activeCount = 0;                 // Counter for processes currently in use
+    struct proc* processEntry;           // Pointer to iterate over the process table
+
+    acquire(&ptable.lock);               // Lock the process table for safe access
+    for (processEntry = ptable.proc; processEntry < &ptable.proc[NPROC]; processEntry++)
+        if (processEntry->state != UNUSED)  // If the process is active (not UNUSED)
+            activeCount=activeCount+1;             // Increment our count of active processes
+
+    release(&ptable.lock);               // Unlock the process table after processing
+
+    return activeCount;                // Return the total active process count
+}
+
+
+// return highest oid fromm all active.
+int getMaxPid(void)
+{
+    int highestProcessId = 0;         // Variable to store the highest encountered process ID
+    struct proc* currentProcess;      // Iterator pointer for the process table
+
+    acquire(&ptable.lock);            // Lock the process table to ensure safe traversal
+
+    for (currentProcess = ptable.proc; currentProcess < &ptable.proc[NPROC]; currentProcess++) {
+        // If the process is active and its PID is greater than the current highest, update highestProcessId
+        if (currentProcess->state != UNUSED && currentProcess->pid > highestProcessId) {
+            highestProcessId = currentProcess->pid;
+        }
+    }
+
+    release(&ptable.lock);            // Unlock the process table after finishing the iteration
+
+    return highestProcessId;          // Return the highest process ID found
+}
+// Populates a processInfo structure with details of the process matching the given pid.
+// Returns 0 on success, or -1 if no process with that pid exists.
+int getProcInfo(int pid, struct processInfo* info)
+{
+    acquire(&ptable.lock);  // Secure access to the process table
+
+    // Iterate over each process in the process table
+    for (struct proc* currentProc = ptable.proc; currentProc < &ptable.proc[NPROC]; currentProc++) {
+        // Check if the current process has the matching process ID
+        if (currentProc->pid == pid) {
+            info->state = currentProc->state;  // Assign process state
+            info->ppid = currentProc->parent ? currentProc->parent->pid : 0;  // Set parent PID, using 0 if no parent exists (e.g., init)
+            info->sz = currentProc->sz;        // Assign process memory size
+            info->nfd = currentProc->nfd;      // Assign number of file descriptors in use
+            info->nrswitch = currentProc->nrswitch;  // Assign count of context switches
+            release(&ptable.lock);             // Unlock process table
+            return 0;                        // Successful retrieval
+        }
+    }
+
+    release(&ptable.lock);  // Release lock if process not found
+    return -1;              // Process with the provided pid does not exist
+}
+
