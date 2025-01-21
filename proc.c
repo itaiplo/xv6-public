@@ -561,42 +561,46 @@ int getNumProc(void)
 }
 
 
-// Returns the highest PID value among all active processes in the system.
-int
-getMaxPid(void)
+// return highest oid fromm all active.
+int getMaxPid(void)
 {
-    int maxPid = 0; 
-    struct proc* p; 
+    int highestProcessId = 0;         // Variable to store the highest encountered process ID
+    struct proc* currentProcess;      // Iterator pointer for the process table
 
-    acquire(&ptable.lock); 
+    acquire(&ptable.lock);            // Lock the process table to ensure safe traversal
 
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if (p->state != UNUSED && p->pid > maxPid) {
-            maxPid = p->pid; // Update maxPid with the PID of the current process
+    for (currentProcess = ptable.proc; currentProcess < &ptable.proc[NPROC]; currentProcess++) {
+        // If the process is active and its PID is greater than the current highest, update highestProcessId
+        if (currentProcess->state != UNUSED && currentProcess->pid > highestProcessId) {
+            highestProcessId = currentProcess->pid;
         }
     }
 
-    release(&ptable.lock); 
+    release(&ptable.lock);            // Unlock the process table after finishing the iteration
 
-    return maxPid; 
+    return highestProcessId;          // Return the highest process ID found
 }
+// Populates a processInfo structure with details of the process matching the given pid.
+// Returns 0 on success, or -1 if no process with that pid exists.
+int getProcInfo(int pid, struct processInfo* info)
+{
+    acquire(&ptable.lock);  // Secure access to the process table
 
-// Fills in a processInfo structure with details of the process identified by pid.
-// Returns 0 on success or -1 if no process with the given pid exists.
-int getProcInfo(int pid, struct processInfo* info) {
-    acquire(&ptable.lock);
-    for (struct proc* p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if (p->pid == pid) {
-            info->state = p->state;
-            info->ppid = p->parent ? p->parent->pid : 0; // Parent PID, 0 if none (for init)
-            info->sz = p->sz;
-            info->nfd = p->nfd; 
-            info->nrswitch = p->nrswitch; 
-            release(&ptable.lock);
-            return 0; 
+    // Iterate over each process in the process table
+    for (struct proc* currentProc = ptable.proc; currentProc < &ptable.proc[NPROC]; currentProc++) {
+        // Check if the current process has the matching process ID
+        if (currentProc->pid == pid) {
+            info->state = currentProc->state;  // Assign process state
+            info->ppid = currentProc->parent ? currentProc->parent->pid : 0;  // Set parent PID, using 0 if no parent exists (e.g., init)
+            info->sz = currentProc->sz;        // Assign process memory size
+            info->nfd = currentProc->nfd;      // Assign number of file descriptors in use
+            info->nrswitch = currentProc->nrswitch;  // Assign count of context switches
+            release(&ptable.lock);             // Unlock process table
+            return 0;                        // Successful retrieval
         }
     }
-    release(&ptable.lock);
-    return -1; 
+
+    release(&ptable.lock);  // Release lock if process not found
+    return -1;              // Process with the provided pid does not exist
 }
 
