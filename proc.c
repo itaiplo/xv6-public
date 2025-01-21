@@ -6,7 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-#include "processInfo.h" ///// our line
+#include "processInfo.h" 
 
 struct {
   struct spinlock lock;
@@ -90,8 +90,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  p->nrswitch = 0;  ////// our line: Initialize nrswitch to 0 for the new process
-  p->nfd = 0;       ////// our line: Initialize nfd to 0 for the new process
+  p->nrswitch = 0;  // Init nrswitch to 0 for new process
+  p->nfd = 0;       // Init nfd to 0 for new process
 
   release(&ptable.lock);
 
@@ -213,8 +213,7 @@ fork(void)
   np->cwd = idup(curproc->cwd);
 
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
-
-  np->nfd = curproc->nfd; //// our line: copy the nfd from the parent to the chaild.
+  np->nfd = curproc->nfd; // duplicate nfd from parent to child.
 
   pid = np->pid;
 
@@ -351,7 +350,7 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
-      p->nrswitch++; /////our line: increading nrswitch when processes chagnes
+      p->nrswitch++; //increase nrswitch by 1 for the process that is running
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -543,23 +542,24 @@ procdump(void)
   }
 }
 
-/////////////////////our functions////////////////////
+// functions
 
-// Returns the total number of active processes in the system.
-int
-getNumProc(void)
+// return the actice proccess.
+int getNumProc(void)
 {
-    int count = 0;
-    struct proc* p;
-    acquire(&ptable.lock); // Acquire the lock on the process table to ensure exclusive access
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-        if (p->state != UNUSED) // If the process state is anything but UNUSED
-            count++;
+    int activeCount = 0;                 // Counter for processes currently in use
+    struct proc* processEntry;           // Pointer to iterate over the process table
 
-    release(&ptable.lock); // Release the lock on the process table
+    acquire(&ptable.lock);               // Lock the process table for safe access
+    for (processEntry = ptable.proc; processEntry < &ptable.proc[NPROC]; processEntry++)
+        if (processEntry->state != UNUSED)  // If the process is active (not UNUSED)
+            activeCount=activeCount+1;             // Increment our count of active processes
 
-    return count;
+    release(&ptable.lock);               // Unlock the process table after processing
+
+    return activeCount;                // Return the total active process count
 }
+
 
 // Returns the highest PID value among all active processes in the system.
 int
