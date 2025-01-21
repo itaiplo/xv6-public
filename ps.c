@@ -2,27 +2,38 @@
 #include "user.h"
 #include "processInfo.h" 
 
-// Manually converts an integer to a string
-void itoa(int n, char* s) {
-    int i, sign;
-    if ((sign = n) < 0)  // Record sign
-        n = -n;          // Make n positive
-    i = 0;
-    do {       // Generate digits in reverse order
-        s[i++] = n % 10 + '0';   // Get next digit
-    } while ((n /= 10) > 0);     // Delete it
-    if (sign < 0)
-        s[i++] = '-';
-    s[i] = '\0';
-
-    // Reverse the string
-    int j, k;
-    char c;
-    for (j = 0, k = i - 1; j < k; j++, k--) {
-        c = s[j];
-        s[j] = s[k];
-        s[k] = c;
+// Helper function to reverse a string in place.
+void reverse(char* str) {
+    int start = 0;
+    int end = strlen(str) - 1;
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
     }
+}
+
+// Converts an integer n to a string and stores it in s.
+void itoa(int n, char* s) {
+    int i = 0;
+
+    // Handle negative numbers by converting n to positive.
+    if (n < 0)
+        n = -n;
+
+    // Generate digits in reverse order.
+    do {
+        s[i++] = (n % 10) + '0';
+        n /= 10;
+    } while (n > 0);
+
+
+    s[i] = '\0';  // Null-terminate the string
+
+    // Reverse the string to obtain the correct order.
+    reverse(s);
 }
 
 // Converts process state to a readable string
