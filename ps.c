@@ -36,56 +36,72 @@ void itoa(int n, char* s) {
     reverse(s);
 }
 
-// Converts process state to a readable string
-char* stateToString(int state) {
-    switch (state) {
-    case 0: return "UNUSED  ";
-    case 1: return "EMBRYO  ";
-    case 2: return "SLEEPING";
-    case 3: return "RUNNABLE";
-    case 4: return "RUNNING ";
-    case 5: return "ZOMBIE  ";
-    default: return "UNKNOWN ";
-    }
+// proccess state to string
+char* state_to_str(int state) {
+    if (state == 0)
+        return "UNUSED  ";
+    else if (state == 1)
+        return "EMBRYO  ";
+    else if (state == 2)
+        return "SLEEPING";
+    else if (state == 3)
+        return "RUNNABLE";
+    else if (state == 4)
+        return "RUNNING ";
+    else if (state == 5)
+        return "ZOMBIE  ";
+    else
+        return "UNKNOWN ";
 }
 
-// Pad and print a string with spaces to align columns
-void padAndPrintString(char* str, int width) {
-    printf(1, "%s", str);
-    int len = strlen(str);
-    for (int i = len; i < width; i++) {
+
+// Pads the provided text with spaces and prints it so that the output occupies a fixed width column.
+void pad_and_print_str(char* text, int totalWidth) {
+    // Print the original text.
+    printf(1, "%s", text);
+    
+    int textLength = strlen(text);  // Determine the length of the given text
+    
+    // Print extra spaces until the total printed characters reach totalWidth.
+    for (int position = textLength; position < totalWidth; position=position+1) {
         printf(1, " ");
     }
 }
 
-// Pad and print an integer as a string with spaces to align columns
-void padAndPrintInt(int value, int width) {
-    char numStr[12]; // Sufficiently large for an int
-    itoa(value, numStr);
-    padAndPrintString(numStr, width);
+
+// Pads the integer value (converted to a string) with spaces so that the printed output aligns to a fixed column width.
+void pad_and_print_int(int val, int colWidth) {
+    char numBuffer[12];  // Buffer to hold the string representation of the integer (enough for typical int values)
+    itoa(val, numBuffer);    // Convert the integer to a string
+    pad_and_print_str(numBuffer, colWidth);  // Print the string with padding to meet the specified width
 }
 
-int main(void) {
-    struct processInfo pInfo;
-    int totalProcs = getNumProc();
-    int maxPid = getMaxPid();
 
-    printf(1, "Total number of active processes: %d\n", totalProcs);
-    printf(1, "Maximum PID: %d\n", maxPid);
+// Main function that displays process information in aligned columns.
+int main(void) {
+    struct processInfo procDetails;  // Structure to hold details for a specific process
+    int activeCount = getNumProc();  // Total number of active processes
+    int highestPid = getMaxPid();    // Highest process ID among active processes
+
+    // Print summary information about the processes.
+    printf(1, "Total number of active processes: %d\n", activeCount);
+    printf(1, "Maximum PID: %d\n", highestPid);
     printf(1, "PID     STATE     PPID    SZ      NFD   NRSWITCH\n");
 
-    for (int pid = 1; pid <= maxPid; ++pid) {
-        if (getProcInfo(pid, &pInfo) == 0) {
-            // Print each field with padding for alignment
-            padAndPrintInt(pid, 8); // PID
-            padAndPrintString(stateToString(pInfo.state), 10); // STATE
-            padAndPrintInt(pInfo.ppid, 8); // PPID
-            padAndPrintInt(pInfo.sz, 8); // SZ
-            padAndPrintInt(pInfo.nfd, 6); // NFD
-            padAndPrintInt(pInfo.nrswitch, 10); // NRSWITCH
-            printf(1, "\n");
+    // Iterate through all possible process IDs from 1 to highestPid.
+    for (int currentPid = 1; currentPid <= highestPid; ++currentPid) {
+        // Retrieve process information; if successful, display the details.
+        if (getProcInfo(currentPid, &procDetails) == 0) {
+            pad_and_print_int(currentPid, 8);                           // Print the process ID with padding
+            pad_and_print_str(state_to_str(procDetails.state), 10);    // Print the process state as a string with padding
+            pad_and_print_int(procDetails.ppid, 8);                       // Print the parent process ID with padding
+            pad_and_print_int(procDetails.sz, 8);                         // Print the size of process memory with padding
+            pad_and_print_int(procDetails.nfd, 6);                        // Print the number of file descriptors with padding
+            pad_and_print_int(procDetails.nrswitch, 10);                  // Print the number of context switches with padding
+            printf(1, "\n");                                          // Move to the next line after printing all fields
         }
     }
 
     exit();
 }
+
