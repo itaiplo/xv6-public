@@ -1,4 +1,4 @@
-#include "processInfo.h" ///// our line
+#include "processInfo.h" 
 struct stat;
 struct rtcdate;
 
@@ -24,9 +24,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int getNumProc(void); ///// our line
-int getMaxPid(void); ///// our line
-int getProcInfo(int pid, struct processInfo* info); ///// our line
+
+//my funcs
+int getNumProc(void);
+int getMaxPid(void); 
+int getProcInfo(int pid, struct processInfo* info); 
 
 // ulib.c
 int stat(const char*, struct stat*);
