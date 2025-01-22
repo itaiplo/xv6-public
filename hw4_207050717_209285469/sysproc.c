@@ -96,15 +96,12 @@ sys_uptime(void)
   return xticks;
 }
 
-///////////// our functions//////////////
-int
-sys_getNumProc(void)
+int sys_getNumProc(void)
 {
     return getNumProc();
 }
 
-int
-sys_getMaxPid(void)
+int sys_getMaxPid(void)
 {
     return getMaxPid();
 }
